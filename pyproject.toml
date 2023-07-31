@@ -1,0 +1,15 @@
+[tool.poetry]
+name = "kropki-gen"
+version = "0.1.0"
+description = ""
+authors = ["Giovanni Berti <dev.giovanniberti@gmail.com>"]
+readme = "README.md"
+packages = [{include = "kropki_gen"}]
+
+[tool.poetry.dependencies]
+python = "^3.11"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
