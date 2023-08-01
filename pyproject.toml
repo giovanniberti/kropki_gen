@@ -8,6 +8,7 @@ packages = [{include = "kropki_gen"}]
 
 [tool.poetry.dependencies]
 python = "^3.11"
+cpmpy = "^0.9.16"
 
 
 [build-system]
