@@ -1,4 +1,4 @@
-from itertools import product
+from itertools import product, chain
 
 import cpmpy as cp
 from cpmpy.expressions.variables import NDVarArray
@@ -14,8 +14,9 @@ def build_kropki_base_model() -> tuple[cp.Model, NDVarArray]:
     all_different_in_cell = (cp.AllDifferent(grid[r, c] for r, c in product(*cell))
                              for cell in product(cell_intervals, cell_intervals))
 
-    return cp.Model(
-        *all_different_in_row,
-        *all_different_in_col,
-        *all_different_in_cell,
-    ), grid
+    model = cp.Model()
+
+    for c in chain(all_different_in_row, all_different_in_col, all_different_in_cell):
+        model += c
+
+    return model, grid

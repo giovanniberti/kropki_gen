@@ -1,11 +1,14 @@
+from pprint import pprint
+
 from generator import generate_kropki
+from ken import encode_constraints
 
 
 def main():
-    solution = generate_kropki()
+    kropki, full_solution = generate_kropki()
 
-    print(len(solution))
-    print(solution)
+    print(encode_constraints(kropki))
+    print(encode_constraints(full_solution))
 
 
 if __name__ == '__main__':

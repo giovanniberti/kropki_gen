@@ -37,14 +37,14 @@ def a_star(start_node, is_goal, neighbors, h, d):
     best_scores = defaultdict(Infinity)
     best_scores[start_node] = h(start_node)
 
-    max_c = -1
+    min_c = Infinity()
 
     while openset:
         current = min(openset, key=lambda n: best_scores[n])
 
-        if len(current) > max_c:
-            max_c = len(current)
-            print(f"Current max: {max_c}")
+        if len(current) < min_c:
+            min_c = len(current)
+            print(f"Current min: {min_c}")
 
         if is_goal(current):
             return current

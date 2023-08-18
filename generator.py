@@ -1,5 +1,7 @@
+import random
 from abc import ABC
 from enum import Enum, auto
+from functools import cache
 from itertools import product
 from typing import Iterable, Any
 
@@ -13,7 +15,7 @@ class Constraint(ABC):
     def __contains__(self, item):
         return item in self.cells()
 
-    def cells(self) -> set[tuple[int, int]]:
+    def cells(self) -> frozenset[tuple[int, int]]:
         raise NotImplementedError()
 
     def reference_cell(self) -> tuple[int, int]:
@@ -88,15 +90,9 @@ def get_constrained_cells(constraint_set: Iterable[Constraint]):
     return constrained_cells
 
 
-def get_neighbor_constraints_set(constraint_set: frozenset[Constraint], base_solution) -> frozenset[
+def get_neighbor_constraints_set(constraint_set: frozenset[Constraint]) -> frozenset[
     frozenset[Constraint]]:
-    neighbor_constraint_sets = set()
-    grid = grid_coords()
-
-    for cell in grid:
-        new_constraint = CellConstraint(cell, base_solution[*cell].value())
-        if new_constraint not in constraint_set:
-            neighbor_constraint_sets.add(frozenset(constraint_set | {new_constraint}))
+    neighbor_constraint_sets = {constraint_set - {c} for c in constraint_set if type(c) is CellConstraint}
 
     return frozenset(neighbor_constraint_sets)
 
@@ -114,9 +110,9 @@ def constraint_to_model(grid, constraint: Constraint) -> Expression:
             r1, c1 = cell1
             r2, c2 = cell2
 
-            if dot_type == DotType.BLACK:
+            if dot_type == DotType.WHITE:
                 return (grid[r1, c1] == grid[r2, c2] + 1) | (grid[r1, c1] + 1 == grid[r2, c2])
-            elif dot_type == DotType.WHITE:
+            elif dot_type == DotType.BLACK:
                 return (grid[r1, c1] == grid[r2, c2] * 2) | (grid[r1, c1] * 2 == grid[r2, c2])
             else:
                 raise ValueError("Unsupported dot type")
@@ -127,9 +123,21 @@ def constraint_to_model(grid, constraint: Constraint) -> Expression:
 
 
 def is_minimal_constraint_set(constraints_set: set[Constraint]):
-    number_of_solutions = get_number_of_solutions(constraints_set)
+    # Check whether the constraint set is minimal, i.e. removing any further constraint
+    # would allow multiple solutions
 
-    return number_of_solutions == 1
+    value_constraints = set(filter(lambda c: type(c) is CellConstraint, constraints_set))
+
+    for constraint in value_constraints:
+        reduced_constraint_set = constraints_set - {constraint}
+        number_of_solutions = get_number_of_solutions(reduced_constraint_set)
+
+        assert number_of_solutions != 0
+
+        if number_of_solutions == 1:
+            return False
+
+    return True
 
 
 def get_number_of_solutions(constraints_set):
@@ -140,11 +148,61 @@ def get_number_of_solutions(constraints_set):
     return number_of_solutions
 
 
+def get_dot_constraints(solution):
+    grid = grid_coords()
+
+    dot_constraints = set()
+
+    def is_dot(cell1, cell2):
+        def is_black(cell1, cell2):
+            return solution[*cell1].value() == solution[*cell2].value() * 2 or \
+                   solution[*cell1].value() * 2 == solution[*cell2].value()
+
+        def is_white(cell1, cell2):
+            return solution[*cell1].value() == solution[*cell2].value() + 1 or \
+                   solution[*cell1].value() + 1 == solution[*cell2].value()
+
+        if is_black(cell1, cell2):
+            return DotType.BLACK
+        elif is_white(cell, cell2):
+            return DotType.WHITE
+        else:
+            return None
+
+    for cell in grid:
+        r, c = cell
+        right_cell = (r, c + 1)
+        bottom_cell = (r + 1, c)
+
+        if c != 8:
+            right_dot = is_dot(cell, right_cell)
+
+            if right_dot is not None:
+                dot_constraints.add(DotConstraint({cell, right_cell}, right_dot))
+
+        if r != 8:
+            bottom_dot = is_dot(cell, bottom_cell)
+
+            if bottom_dot is not None:
+                dot_constraints.add(DotConstraint({cell, bottom_cell}, bottom_dot))
+
+    return dot_constraints
+
+
 def generate_kropki():
     model, solution = build_kropki_base_model()
     model.solve()
 
-    start_node = frozenset({})
+    value_constraints = {CellConstraint((r, c), solution[r, c].value()) for r, c in grid_coords()}
+    dot_constraints = get_dot_constraints(solution)
+    sampled_constraints = 50
+
+    while True:
+        sampled_value_constraints = set(random.choices(list(value_constraints), k=sampled_constraints))
+        start_node = frozenset(sampled_value_constraints | dot_constraints)
+
+        if get_number_of_solutions(start_node) == 1:
+            break
 
     def distance(i: frozenset[Constraint], j: frozenset[Constraint]):
         return len(i.symmetric_difference(j))
@@ -152,7 +210,7 @@ def generate_kropki():
     return a_star(
         start_node=start_node,
         is_goal=is_minimal_constraint_set,
-        neighbors=lambda n: get_neighbor_constraints_set(n, solution),
+        neighbors=get_neighbor_constraints_set,
         h=lambda n: 0,
         d=distance
-    )
+    ), value_constraints
