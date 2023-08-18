@@ -5,7 +5,7 @@ from ken import encode_constraints
 
 
 def main():
-    kropki, full_solution = generate_kropki()
+    kropki, full_solution = generate_kropki(sampled_constraints=40)
 
     print(encode_constraints(kropki))
     print(encode_constraints(full_solution))

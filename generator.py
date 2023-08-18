@@ -189,16 +189,15 @@ def get_dot_constraints(solution):
     return dot_constraints
 
 
-def generate_kropki():
+def generate_kropki(sampled_constraints):
     model, solution = build_kropki_base_model()
     model.solve()
 
     value_constraints = {CellConstraint((r, c), solution[r, c].value()) for r, c in grid_coords()}
     dot_constraints = get_dot_constraints(solution)
-    sampled_constraints = 50
 
     while True:
-        sampled_value_constraints = set(random.choices(list(value_constraints), k=sampled_constraints))
+        sampled_value_constraints = set(random.sample(list(value_constraints), k=sampled_constraints))
         start_node = frozenset(sampled_value_constraints | dot_constraints)
 
         if get_number_of_solutions(start_node) == 1:
