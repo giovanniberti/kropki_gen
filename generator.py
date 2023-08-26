@@ -1,19 +1,23 @@
 import random
 from abc import ABC
 from enum import Enum, auto
-from functools import cache
-from itertools import product
+from functools import cache, total_ordering
+from itertools import product, combinations
 from typing import Iterable, Any
 
 from cpmpy.expressions.core import Expression
 
 from graph import a_star
-from model import build_kropki_base_model
+from model import build_kropki_base_model, get_kropki_solution
 
 
+@total_ordering
 class Constraint(ABC):
     def __contains__(self, item):
         return item in self.cells()
+
+    def __lt__(self, other):
+        return isinstance(other, Constraint) and self.reference_cell() < other.reference_cell()
 
     def cells(self) -> frozenset[tuple[int, int]]:
         raise NotImplementedError()
@@ -90,9 +94,58 @@ def get_constrained_cells(constraint_set: Iterable[Constraint]):
     return constrained_cells
 
 
-def get_neighbor_constraints_set(constraint_set: frozenset[Constraint]) -> frozenset[
-    frozenset[Constraint]]:
-    neighbor_constraint_sets = {constraint_set - {c} for c in constraint_set if type(c) is CellConstraint}
+def prefixed_sequence_generator(prefix: list[tuple[int, int]]):
+    def sequence():
+        grid = grid_coords() - set(prefix)
+
+        for cell in prefix:
+            yield cell
+
+        while grid:
+            yield grid.pop()
+
+    return sequence
+
+
+def get_last_chosen_cell_index(constraint_set: frozenset[Constraint], start_node: frozenset[Constraint]) -> int:
+    chosen_cells, _ = partition_cells(constraint_set, start_node)
+    return len(chosen_cells)
+
+
+def partition_cells(constraint_set: frozenset[Constraint], start_node: frozenset[Constraint]) -> \
+        tuple[list[tuple[int, int]], list[tuple[int, int]]]:
+    start_holes = grid_coords() - set(c.reference_cell() for c in start_node if type(c) is CellConstraint)
+    sequence_generator = prefixed_sequence_generator(sorted(list(start_holes)))
+
+    constrained_cells = {c.reference_cell(): c for c in constraint_set if type(c) is CellConstraint}
+    holes = grid_coords() - constrained_cells.keys()
+
+    last_chosen_cell = None
+    chosen_cells = []
+    possibly_chosen = []
+    for c in sequence_generator():
+        possibly_chosen.append(c)
+        if c in holes:
+            last_chosen_cell = c
+            chosen_cells += possibly_chosen
+            possibly_chosen = []
+    candidate_cells = possibly_chosen
+
+    if len(holes) > 0:
+        assert chosen_cells[-1] == last_chosen_cell
+
+    assert len(chosen_cells) + len(candidate_cells) == len(grid_coords())
+
+    return chosen_cells, candidate_cells
+
+
+def get_neighbor_constraints_set(constraint_set: frozenset[Constraint], start_node: frozenset[Constraint]) -> \
+        frozenset[
+            frozenset[Constraint]]:
+    constrained_cells = {c.reference_cell(): c for c in constraint_set if type(c) is CellConstraint}
+    _, candidate_cells = partition_cells(constraint_set, start_node)
+
+    neighbor_constraint_sets = {constraint_set - {constrained_cells[c]} for c in candidate_cells}
 
     return frozenset(neighbor_constraint_sets)
 
@@ -207,18 +260,20 @@ def generate_kropki(sampled_constraints):
             found = True
             break
 
-    def distance(i: frozenset[Constraint], j: frozenset[Constraint]):
-        return len(i.symmetric_difference(j))
     if not found:
         raise RuntimeError(f"Cannot find solution with {sampled_constraints} fixed constraints! "
                            f"Try to use a higher number instead. ({n} total combinations scanned)")
 
+    def distance(i: frozenset[Constraint], j: frozenset[Constraint], start_node: frozenset[Constraint]):
+        i_index = get_last_chosen_cell_index(i, start_node)
+        j_index = get_last_chosen_cell_index(j, start_node)
 
+        return abs(i_index - j_index)
 
     return a_star(
         start_node=start_node,
         is_goal=is_minimal_constraint_set,
-        neighbors=get_neighbor_constraints_set,
+        neighbors=lambda n: get_neighbor_constraints_set(n, start_node),
         h=lambda n: 0,
-        d=distance
+        d=lambda i, j: distance(i, j, start_node)
     ), value_constraints
