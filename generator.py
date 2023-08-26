@@ -195,16 +195,25 @@ def generate_kropki(sampled_constraints):
 
     value_constraints = {CellConstraint((r, c), solution[r, c].value()) for r, c in grid_coords()}
     dot_constraints = get_dot_constraints(solution)
+    start_node = frozenset(value_constraints | dot_constraints)
 
-    while True:
-        sampled_value_constraints = set(random.sample(list(value_constraints), k=sampled_constraints))
-        start_node = frozenset(sampled_value_constraints | dot_constraints)
+    n = 0
+    found = False
+    for sampled_value_constraints in combinations(value_constraints, r=sampled_constraints):
+        n += 1
+        start_node = frozenset(set(sampled_value_constraints) | dot_constraints)
 
         if get_number_of_solutions(start_node) == 1:
+            found = True
             break
 
     def distance(i: frozenset[Constraint], j: frozenset[Constraint]):
         return len(i.symmetric_difference(j))
+    if not found:
+        raise RuntimeError(f"Cannot find solution with {sampled_constraints} fixed constraints! "
+                           f"Try to use a higher number instead. ({n} total combinations scanned)")
+
+
 
     return a_star(
         start_node=start_node,

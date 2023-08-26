@@ -1,6 +1,4 @@
 import sys
-import time
-from pprint import pprint
 
 from generator import generate_kropki
 from ken import encode_constraints
