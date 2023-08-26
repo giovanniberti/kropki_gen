@@ -1,0 +1,36 @@
+openapi: "3.0.2"
+info:
+  title: Kropki Generator API
+  version: "1.0"
+paths:
+  /kropki:
+    parameters:
+      - in: query
+        required: false
+        name: sampling
+        description: Number of sampling constraints.
+        schema:
+          type: integer
+          default: 5
+    post:
+      responses:
+        '200':
+          description: Successful kropki generation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/KropkiSuccessfulResponse"
+components:
+  schemas:
+    KropkiSuccessfulResponse:
+      type: object
+      properties:
+        ken:
+          type: string
+          description: KEN (Kropki Easy Notation) encoding of the generated Kropki
+        solution:
+          type: string
+          description: KEN (Kropki Easy Notation) encoding of the Kropki solution
+      required:
+        - ken
+        - solution

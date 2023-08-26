@@ -9,6 +9,8 @@ packages = [{include = "kropki_gen"}]
 [tool.poetry.dependencies]
 python = "^3.11"
 cpmpy = "^0.9.16"
+fastapi = "^0.102.0"
+uvicorn = {extras = ["standard"], version = "^0.23.2"}
 
 
 [build-system]
