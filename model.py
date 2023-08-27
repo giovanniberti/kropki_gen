@@ -1,7 +1,8 @@
+import os
 import random
-from functools import cache
 from itertools import product, chain
 
+import redis
 import cpmpy as cp
 import numpy as np
 from cpmpy.expressions.variables import NDVarArray
@@ -25,23 +26,23 @@ def build_kropki_base_model() -> tuple[cp.Model, NDVarArray]:
     return model, grid
 
 
-@cache
-def generate_sudoku_solutions(maxsol=5):
+
+def generate_kropki_solution(store=None):
+    if store is None:
+        store = []
+
     model, solution = build_kropki_base_model()
     s = cp.SolverLookup.get("ortools", model)
 
-    store = []
-    solutions = []
-    while len(store) < maxsol and s.solve():
-        store.append(solution.value())
-        solutions.append(solution)
+    solution_found = s.solve()
+    if solution_found and store:
+        new_solution = solution.value()
         s.maximize(sum([np.sum(solution != sol) for sol in store]))
+    elif solution_found and not store:
+        new_solution = solution.value()
+    elif not solution_found and store:
+        new_solution = random.choice(store)
+    else:
+        raise RuntimeError("No solution found!")
 
-    assert len(store) > 0
-    return solutions
-
-
-def get_kropki_solution(maxsol=5) -> NDVarArray:
-    solutions = generate_sudoku_solutions(maxsol)
-
-    return random.choice(solutions)
+    return new_solution

@@ -1,0 +1,31 @@
+version: "3.3"
+services:
+
+  backend:
+    env_file:
+      - .env.local
+    build:
+      dockerfile: backend.Dockerfile
+    ports:
+      - "8000:8000"
+
+  celeryworker:
+    env_file:
+      - .env.local
+    build:
+      dockerfile: celeryworker.Dockerfile
+  
+  celerybeat:
+    env_file:
+      - .env.local
+    build:
+      dockerfile: celerybeat.Dockerfile
+
+
+  redis:
+    image: redis
+
+  redis-insights:
+    image: redislabs/redisinsight
+    ports:
+      - "8001:8001"

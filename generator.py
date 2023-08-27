@@ -1,15 +1,17 @@
-import random
+from abc import ABC
 from abc import ABC
 from enum import Enum, auto
-from functools import cache, total_ordering
+from functools import total_ordering
 from itertools import product, combinations
 from typing import Iterable, Any
 
 from cpmpy.expressions.core import Expression
 
 from graph import a_star
-from model import build_kropki_base_model, get_kropki_solution
+from model import build_kropki_base_model
 
+import redis
+import os
 
 @total_ordering
 class Constraint(ABC):
@@ -208,12 +210,12 @@ def get_dot_constraints(solution):
 
     def is_dot(cell1, cell2):
         def is_black(cell1, cell2):
-            return solution[*cell1].value() == solution[*cell2].value() * 2 or \
-                   solution[*cell1].value() * 2 == solution[*cell2].value()
+            return solution[*cell1] == solution[*cell2] * 2 or \
+                   solution[*cell1] * 2 == solution[*cell2]
 
         def is_white(cell1, cell2):
-            return solution[*cell1].value() == solution[*cell2].value() + 1 or \
-                   solution[*cell1].value() + 1 == solution[*cell2].value()
+            return solution[*cell1] == solution[*cell2] + 1 or \
+                   solution[*cell1] + 1 == solution[*cell2]
 
         if is_black(cell1, cell2):
             return DotType.BLACK
@@ -242,10 +244,8 @@ def get_dot_constraints(solution):
     return dot_constraints
 
 
-def generate_kropki(sampled_constraints, max_generatable_solutions=5):
-    solution = get_kropki_solution(max_generatable_solutions)
-
-    value_constraints = {CellConstraint((r, c), solution[r, c].value()) for r, c in grid_coords()}
+def generate_kropki(solution, sampled_constraints):
+    value_constraints = {CellConstraint((r, c), solution[r, c]) for r, c in grid_coords()}
     dot_constraints = get_dot_constraints(solution)
     start_node = frozenset(value_constraints | dot_constraints)
 

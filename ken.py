@@ -3,6 +3,10 @@ from typing import Optional
 
 from generator import Constraint, grid_coords, CellConstraint, DotConstraint, DotType
 
+import redis
+import os
+import re
+import numpy as np
 
 def encode_dot_type(dot_type: Optional[DotType]):
     if dot_type == DotType.WHITE:
@@ -94,3 +98,93 @@ def encode_constraints(constraints_set: set[Constraint]) -> str:
 
     assert len(ken.split("/")) == 9, f"splits: {len(ken.split('/'))}"
     return rle_ken(ken)
+
+
+def next_cell(cell):
+    if cell[1] == 8 and cell[0] != 8:
+        return cell[0] + 1, 0
+    elif cell[1] == 8 and cell[0] == 8:
+        return None
+    else:
+        return cell[0], cell[1] + 1
+
+def letter_to_dot(letter):
+    if letter == "w":
+        return DotType.WHITE
+    elif letter == "k":
+        return DotType.BLACK
+    else:
+        return None
+
+def decode_dot_constraints(constraint, cell):
+    if len(constraint) == 4:
+        par1, bottom, right, par2 = constraint.split("")
+        value = None
+    else:
+        par1, value, bottom, right, par2 = constraint.split("")
+
+    bottom = letter_to_dot(bottom)
+    right = letter_to_dot(right)
+
+    result = {}
+
+    if bottom:
+        result.add(DotConstraint({cell, (cell[0] + 1, cell[1])}))
+    
+    if right:
+        result.add(DotConstraint({cell, (cell[0], cell[1] + 1)}))
+    
+    if value:
+        result.add(CellConstraint(cell, int(value)))
+
+    return result
+
+def decode_value_constraint(constraint, cell):
+    return CellConstraint(cell, int(constraint))
+
+def decode_ken(ken):
+    rows = ken.split("/")
+
+    if len(rows) != 9:
+        raise RuntimeError(f"Invalid number of rows! ({len(rows)} != 9)")
+    
+    constraints = set()
+    cell = (0, 0)
+    for r in rows:
+        row = r
+        while row:
+            value_constraint = re.compile("[1-9]")
+            dot_constraint = re.compile("\(([1-9])?(w|x|k)(w|x|k)\)")
+
+            if value_constraint.match(row):
+                constraint = row[0]
+                row = row[1:]
+                constraints.add(decode_value_constraint(constraint, cell))
+                cell = next_cell(cell)
+            elif dot_constraint.match(row):
+                groups = dot_constraint.match(row).groups()
+                if len(groups) == 2:
+                    constraint = row[0:4]
+                    row = row[5:]
+                else:
+                    constraint = row[0:5]
+                    row = row[6:]
+
+                constraints += decode_dot_constraints(constraint, cell)
+                cell = next_cell(cell)
+
+    return constraints
+
+def constraints_to_grid(constraints):
+    result = np.zeros(shape=(9, 9))
+
+    for constraint in constraints:
+        result[*constraint.reference_cell()] = constraint.value
+
+    return result.astype(int)
+
+
+def retrieve_kropki_solution():
+    r = redis.from_url(os.getenv("REDIS_KEYS_URL"))
+
+    return constraints_to_grid(decode_ken(str(r.srandmember("sudokus"), 'utf8')))

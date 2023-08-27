@@ -1,17 +1,10 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from loguru import logger
 
 from generator import generate_kropki
-from ken import encode_constraints
-from model import generate_sudoku_solutions
+from ken import encode_constraints, retrieve_kropki_solution
 
 app = FastAPI()
-
-logger.info("Generating initial sudoku solutions...")
-max_generatable_solutions = 50
-generate_sudoku_solutions(max_generatable_solutions)
-logger.info("Generating initial sudoku solutions... Done")
 
 origins = [
     "http://localhost:5173",
@@ -25,7 +18,8 @@ app.add_middleware(
 
 @app.post("/kropki")
 async def api_generate_kropki(sampling: int = 5):
-    kropki, full_solution = generate_kropki(sampling)
+    solution = retrieve_kropki_solution()
+    kropki, full_solution = generate_kropki(solution, sampling)
 
     return {
         "ken": encode_constraints(kropki),
