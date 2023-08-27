@@ -242,8 +242,8 @@ def get_dot_constraints(solution):
     return dot_constraints
 
 
-def generate_kropki(sampled_constraints):
-    solution = get_kropki_solution(5)
+def generate_kropki(sampled_constraints, max_generatable_solutions=5):
+    solution = get_kropki_solution(max_generatable_solutions)
 
     value_constraints = {CellConstraint((r, c), solution[r, c].value()) for r, c in grid_coords()}
     dot_constraints = get_dot_constraints(solution)
