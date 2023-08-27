@@ -1,4 +1,5 @@
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from loguru import logger
 
 from generator import generate_kropki
@@ -12,6 +13,15 @@ max_generatable_solutions = 50
 generate_sudoku_solutions(max_generatable_solutions)
 logger.info("Generating initial sudoku solutions... Done")
 
+origins = [
+    "http://localhost:5173",
+]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_methods=["GET", "POST"],
+)
 
 @app.post("/kropki")
 async def api_generate_kropki(sampling: int = 5):
