@@ -16,4 +16,4 @@ RUN bash -c "if [ $INSTALL_DEV == 'true' ] ; then poetry install --no-root ; els
 COPY . /app
 ENV PYTHONPATH=/app
 
-CMD ["celery", "-A", "worker.app", "worker", "-P", "eventlet", "--without-gossip", "--without-mingle", "--without-heartbeat", "-Ofair", "-E"]
+CMD ["celery", "-A", "worker.app", "worker", "-P", "eventlet", "--without-gossip", "--without-mingle", "--without-heartbeat", "-Ofair", "-E", "--concurrency", "1"]

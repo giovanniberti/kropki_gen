@@ -6,6 +6,7 @@ import redis
 import cpmpy as cp
 import numpy as np
 from cpmpy.expressions.variables import NDVarArray
+from loguru import logger
 
 
 def build_kropki_base_model() -> tuple[cp.Model, NDVarArray]:
@@ -33,12 +34,14 @@ def generate_kropki_solution(store=None):
 
     model, solution = build_kropki_base_model()
     s = cp.SolverLookup.get("ortools", model)
+    if store:
+        s.maximize(cp.sum(cp.sum(solution != v) for v in store))
 
     solution_found = s.solve()
-    if solution_found and store:
-        new_solution = solution.value()
-        s.maximize(sum([np.sum(solution != sol) for sol in store]))
-    elif solution_found and not store:
+
+    logger.info("Solution found: {}", solution_found)
+
+    if solution_found:
         new_solution = solution.value()
     elif not solution_found and store:
         new_solution = random.choice(store)
