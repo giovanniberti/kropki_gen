@@ -40,7 +40,6 @@ def worker_generate_kropki_impl():
     logger.info("Constructing new solution...")
     r = redis.from_url(os.getenv("REDIS_KEYS_URL"))
     sudokus = r.smembers("sudokus")
-    logger.info("sudokus: {}", sudokus)
     store = [constraints_to_grid(decode_ken(str(s, 'utf8'))) for s in sudokus]
 
     logger.info("Store has {} elements", len(store))
