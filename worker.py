@@ -28,8 +28,6 @@ def worker_generate_kropki():
         except Exception as e:
             logger.error("Exception while generating new solution: {}", e)
             traceback.print_exc()
-        finally:
-            sleep(10)
 
 
 def worker_generate_kropki_impl():
