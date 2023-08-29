@@ -9,17 +9,18 @@ app = FastAPI()
 
 origins = [
     "http://localhost:5173",
-    "https://kropki-gen.fly.dev"
+    "https://kropki-gen.netlify.app"
 ]
-
-start_worker()
 
 app.add_middleware(
     CORSMiddleware,
     allow_origins=origins,
-    allow_methods=["GET", "POST", "OPTIONS"],
-    allow_headers=["*"]
+    allow_methods=["GET", "POST"],
 )
+
+
+start_worker()
+
 
 @app.post("/kropki")
 async def api_generate_kropki(sampling: int = 5):
@@ -30,3 +31,4 @@ async def api_generate_kropki(sampling: int = 5):
         "ken": encode_constraints(kropki),
         "solution": encode_constraints(full_solution)
     }
+
