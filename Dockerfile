@@ -4,8 +4,7 @@ WORKDIR /app/
 
 # Install Poetry
 RUN pip install poetry && \
-    poetry config virtualenvs.create false && \
-    apt update && apt install -y golang tmux
+    poetry config virtualenvs.create false
 
 # Copy poetry.lock* in case it doesn't exist in the repo
 COPY ./pyproject.toml ./poetry.lock* /app/
@@ -15,9 +14,7 @@ ARG INSTALL_DEV=false
 RUN bash -c "if [ $INSTALL_DEV == 'true' ] ; then poetry install --no-root ; else poetry install --no-root --no-dev ; fi"
 
 COPY . /app
-ENV PYTHONPATH=/app PATH=/root/go/bin:$PATH
+ENV PYTHONPATH=/app
 
-RUN GO111MODULE=on go install github.com/DarthSim/overmind/v2@latest
-
-CMD ["overmind", "start"]
+CMD ["uvicorn", "server:app", "--host", "0.0.0.0"]
 

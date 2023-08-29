@@ -3,12 +3,15 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from generator import generate_kropki
 from ken import encode_constraints, retrieve_kropki_solution
+from worker import start_worker
 
 app = FastAPI()
 
 origins = [
     "http://localhost:5173",
 ]
+
+start_worker()
 
 app.add_middleware(
     CORSMiddleware,

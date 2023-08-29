@@ -4,8 +4,8 @@ import traceback
 
 import numpy as np
 
+from multiprocessing import Process
 from time import sleep
-from celery import Celery
 from generator import CellConstraint, grid_coords, DotType, DotConstraint
 from model import generate_kropki_solution
 from ken import constraints_to_grid, decode_ken
@@ -15,25 +15,21 @@ import redis
 
 from loguru import logger
 
-app = Celery('worker', broker=os.getenv("REDIS_BROKER_URL"))
+
+def start_worker():
+    p = Process(target=worker_generate_kropki)
+    p.start()
 
 
-@app.on_after_configure.connect
-def setup_periodic_tasks(sender, **kwargs):
-    logger.info("Setting up periodic generation task...")
-    worker_generate_kropki.delay()
-
-
-@app.task
 def worker_generate_kropki():
-    try:
-        worker_generate_kropki_impl()
-    except Exception as e:
-        logger.error("Exception while generating new solution: {}", e)
-        traceback.print_exc()
-    finally:
-        worker_generate_kropki.delay()
-        sleep(10)
+    while True:
+        try:
+            worker_generate_kropki_impl()
+        except Exception as e:
+            logger.error("Exception while generating new solution: {}", e)
+            traceback.print_exc()
+        finally:
+            sleep(10)
 
 
 def worker_generate_kropki_impl():
