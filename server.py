@@ -9,6 +9,7 @@ app = FastAPI()
 
 origins = [
     "http://localhost:5173",
+    "https://kropki-gen.fly.dev"
 ]
 
 start_worker()
