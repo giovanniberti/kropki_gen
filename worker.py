@@ -45,3 +45,8 @@ def worker_generate_kropki_impl():
     r.sadd("sudokus", encoded_solution)
 
     logger.info("Generated new sudoku: {}", encoded_solution)
+
+
+if __name__ == "__main__":
+    start_worker()
+
