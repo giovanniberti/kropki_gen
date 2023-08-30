@@ -19,7 +19,7 @@ app.add_middleware(
 )
 
 
-start_worker()
+# start_worker()
 
 
 @app.post("/kropki")
