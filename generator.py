@@ -100,11 +100,8 @@ def prefixed_sequence_generator(prefix: list[tuple[int, int]]):
     def sequence():
         grid = grid_coords() - set(prefix)
 
-        for cell in prefix:
-            yield cell
-
-        while grid:
-            yield grid.pop()
+        yield from prefix
+        yield from grid
 
     return sequence
 
